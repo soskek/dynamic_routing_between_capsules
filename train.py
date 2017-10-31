@@ -50,7 +50,7 @@ def main():
         # evaluation
         if train_iter.is_new_epoch:
             mean_loss, accuracy = model.pop_results()
-            print('epoch {}\ttrain mean loss: {}, accuracy: {}'.format(
+            print('epoch {:2d}\ttrain mean loss: {}, accuracy: {}'.format(
                 train_iter.epoch, mean_loss, accuracy))
 
             for batch in test_iter:

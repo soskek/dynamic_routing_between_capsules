@@ -58,8 +58,9 @@ class CapsNet(chainer.Chain):
         out, _ = self.output(x)
         self.loss = self.calculate_loss(out, t)
 
-        self.results['loss'].append(self.loss.data)
+        self.results['loss'].append(self.loss.data * t.shape[0])
         self.results['correct'].append(self.calculate_correct(out, t))
+        self.results['N'] += t.shape[0]
         return self.loss
 
     def output(self, x):

@@ -15,7 +15,7 @@ from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
 
-import train_mnist
+import nets
 
 
 def main():
@@ -41,22 +41,18 @@ def main():
     print('')
 
     # Set up a neural network to train
-    model = L.Classifier(train_mnist.MLP(args.unit, 10))
+    model = nets.CapsNet()
     if args.gpu >= 0:
         # Make a speciied GPU current
         chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     # Setup an optimizer
-    optimizer = chainer.optimizers.Adam()
+    optimizer = chainer.optimizers.Adam(alpha=1e-4)  # 1e-3 def
     optimizer.setup(model)
 
     # Load the MNIST dataset
-    train, test = chainer.datasets.get_mnist()
-
-    train_count = len(train)
-    test_count = len(test)
-
+    train, test = chainer.datasets.get_mnist(ndim=3)
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
@@ -66,39 +62,33 @@ def main():
 
     while train_iter.epoch < args.epoch:
         batch = train_iter.next()
-        x_array, t_array = convert.concat_examples(batch, args.gpu)
-        x = chainer.Variable(x_array)
-        t = chainer.Variable(t_array)
+        x, t = convert.concat_examples(batch, args.gpu)
         optimizer.update(model, x, t)
-        sum_loss += float(model.loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
+        sum_loss += float(model.loss.data) * len(t)
+        sum_accuracy += float(model.accuracy) * len(t)
 
+        # evaluation
         if train_iter.is_new_epoch:
             print('epoch: ', train_iter.epoch)
             print('train mean loss: {}, accuracy: {}'.format(
-                sum_loss / train_count, sum_accuracy / train_count))
-            # evaluation
+                sum_loss / len(train), sum_accuracy / len(train)))
             sum_accuracy = 0
             sum_loss = 0
             for batch in test_iter:
-                x_array, t_array = convert.concat_examples(batch, args.gpu)
-                x = chainer.Variable(x_array)
-                t = chainer.Variable(t_array)
-                loss = model(x, t)
-                sum_loss += float(loss.data) * len(t.data)
-                sum_accuracy += float(model.accuracy.data) * len(t.data)
+                x, t = convert.concat_examples(batch, args.gpu)
+                loss, accuracy = model.evaluate(x, t)
+                sum_loss += float(loss) * len(t)
+                sum_accuracy += float(accuracy) * len(t)
 
             test_iter.reset()
             print('test mean  loss: {}, accuracy: {}'.format(
-                sum_loss / test_count, sum_accuracy / test_count))
+                sum_loss / len(test), sum_accuracy / len(test)))
             sum_accuracy = 0
             sum_loss = 0
 
     # Save the model and the optimizer
     print('save the model')
     serializers.save_npz('mlp.model', model)
-    print('save the optimizer')
-    serializers.save_npz('mlp.state', optimizer)
 
 
 if __name__ == '__main__':

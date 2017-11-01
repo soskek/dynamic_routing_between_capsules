@@ -85,7 +85,8 @@ class CapsNet(chainer.Chain):
             ss = F.sum(Cs * Preds, axis=(3, 4))
             ss_norm = F.sum(ss ** 2, axis=1, keepdims=True)
             ss_norm = F.broadcast_to(ss_norm, ss.shape)
-            vs = ss_norm / (1. + ss_norm) * ss / (ss_norm ** 0.5)
+            # vs = ss_norm / (1. + ss_norm) * ss / (ss_norm ** 0.5)
+            vs = ss_norm ** 0.5 / (1. + ss_norm) * ss
             # (batchsize, 16, 10)
 
             if i_iter != n_iterations - 1:

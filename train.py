@@ -2,34 +2,33 @@ from __future__ import print_function
 
 import argparse
 import json
-
+import numpy as np
 import chainer
 from chainer.dataset.convert import concat_examples
 
 import nets
 
-DECAY_LR = 0.8
+DECAY_LR = 0.9
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Chainer example: MNIST')
-    parser.add_argument('--batchsize', '-b', type=int, default=128,
-                        help='Number of images in each mini-batch')
-    parser.add_argument('--epoch', '-e', type=int, default=30,
-                        help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--out', '-o', default='result',
-                        help='Directory to output the result')
+    parser = argparse.ArgumentParser(description='CapsNet: MNIST')
+    parser.add_argument('--batchsize', '-b', type=int, default=128)
+    parser.add_argument('--epoch', '-e', type=int, default=500)
+    parser.add_argument('--gpu', '-g', type=int, default=-1)
+    parser.add_argument('--seed', '-s', type=int, default=777)
     args = parser.parse_args()
     print(json.dumps(args.__dict__, indent=2))
 
     # Set up a neural network to train
+    np.random.seed(args.seed)
     model = nets.CapsNet()
     if args.gpu >= 0:
         # Make a speciied GPU current
         chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
+    np.random.seed(args.seed)
+    model.xp.random.seed(args.seed)
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam(alpha=1e-3)

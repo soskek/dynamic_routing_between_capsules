@@ -14,6 +14,5 @@ python -u train.py -g 0
 - Check the number of parameters; the paper says CapsNet has 11.36M parameters, but really?
 - Find better hyperparamters
     - initialization
-    - minibatch size
     - decay rate of Adam's alpha
 - Experiment on MultiMNIST, Cifar10, smallNORB, SVHN

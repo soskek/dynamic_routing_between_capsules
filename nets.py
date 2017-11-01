@@ -10,11 +10,13 @@ def _augmentation(x):
     xp = cuda.get_array_module(x)
     MAX_SHIFT = 2
     batchsize, ch, h, w = x.shape
-    h_shift, w_shift = xp.random.randint(-MAX_SHIFT, MAX_SHIFT, size=2)
-    h_slice = slice(max(0, h_shift), h_shift + h)
-    w_slice = slice(max(0, w_shift), w_shift + w)
+    h_shift, w_shift = xp.random.randint(-MAX_SHIFT, MAX_SHIFT + 1, size=2)
+    a_h_sl = slice(max(0, h_shift), h_shift + h)
+    a_w_sl = slice(max(0, w_shift), w_shift + w)
+    x_h_sl = slice(max(0, - h_shift), - h_shift + h)
+    x_w_sl = slice(max(0, - w_shift), - w_shift + w)
     a = xp.zeros(x.shape)
-    a[:, :, h_slice, w_slice] = x[:, :, h_slice, w_slice]
+    a[:, :, a_h_sl, a_w_sl] = x[:, :, x_h_sl, x_w_sl]
     return a.astype(x.dtype)
 
 

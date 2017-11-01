@@ -7,20 +7,36 @@ import chainer.links as L
 
 
 def _augmentation(x):
-    MAX_SHIFT = 2
-    batchsize, channel, h, w = x.shape
     xp = cuda.get_array_module(x)
-    h_shift, w_shift = xp.random.randint(0, MAX_SHIFT * 2, size=2)
-    a = xp.zeros((batchsize, channel, h + MAX_SHIFT * 2, w + MAX_SHIFT * 2),
-                 dtype=x.dtype)
-    a[:, :, h_shift:h_shift + h, w_shift:w_shift + w] = x
-    a = a[:, :, MAX_SHIFT:MAX_SHIFT + h, MAX_SHIFT:MAX_SHIFT + w]
-    assert(a.shape == x.shape)
-    return a
+    MAX_SHIFT = 2
+    batchsize, ch, h, w = x.shape
+    h_shift, w_shift = xp.random.randint(-MAX_SHIFT, MAX_SHIFT, size=2)
+    h_slice = slice(max(0, h_shift), h_shift + h)
+    w_slice = slice(max(0, w_shift), w_shift + w)
+    a = xp.zeros(x.shape)
+    a[:, :, h_slice, w_slice] = x[:, :, h_slice, w_slice]
+    return a.astype(x.dtype)
 
 
 def _count_params(m):
     print('# of params', sum(param.size for param in m.params()))
+
+
+def squash(ss):
+    ss_norm2 = F.sum(ss ** 2, axis=1, keepdims=True)
+    """
+    # ss_norm2 = F.broadcast_to(ss_norm2, ss.shape)
+    # vs = ss_norm2 / (1. + ss_norm2) * ss / F.sqrt(ss_norm2): naive
+    """
+    norm_div_1pnorm2 = F.sqrt(ss_norm2) / (1. + ss_norm2)
+    norm_div_1pnorm2 = F.broadcast_to(norm_div_1pnorm2, ss.shape)
+    vs = norm_div_1pnorm2 * ss  # :efficient
+    # (batchsize, 16, 10)
+    return vs
+
+
+def get_norm(vs):
+    return F.sqrt(F.sum(vs ** 2, axis=1))
 
 
 init = chainer.initializers.Uniform(scale=0.05)
@@ -81,31 +97,31 @@ class CapsNet(chainer.Chain):
         bs = self.xp.zeros((batchsize, 10, 32, 6 * 6), dtype='f')
         for i_iter in range(n_iterations):
             cs = F.softmax(bs, axis=1)
-            Cs = F.broadcast_to(cs[:, None], (batchsize, 16, 10, 32, 6 * 6))
+            Cs = F.broadcast_to(cs[:, None], Preds.shape)
+            assert(Cs.shape == (batchsize, 16, 10, 32, 6 * 6))
             ss = F.sum(Cs * Preds, axis=(3, 4))
-            ss_norm = F.sum(ss ** 2, axis=1, keepdims=True)
-            ss_norm = F.broadcast_to(ss_norm, ss.shape)
-            # vs = ss_norm / (1. + ss_norm) * ss / (ss_norm ** 0.5)
-            vs = ss_norm ** 0.5 / (1. + ss_norm) * ss
-            # (batchsize, 16, 10)
+            vs = squash(ss)
+            assert(vs.shape == (batchsize, 16, 10))
 
             if i_iter != n_iterations - 1:
                 Vs = F.broadcast_to(vs[:, :, :, None, None], Preds.shape)
-                # (batchsize, 16, 10, 32, 6 * 6)
+                assert(Vs.shape == (batchsize, 16, 10, 32, 6 * 6))
                 bs = bs + F.sum(Vs * Preds, axis=1)
+                assert(bs.shape == (batchsize, 10, 32, 6 * 6))
 
-        vs_norm = F.sum(vs ** 2, axis=1) ** 0.5
+        vs_norm = get_norm(vs)
         return vs_norm, vs
 
     def calculate_loss(self, v, t):
-        batchsize = t.shape[0]
         xp = self.xp
+        batchsize = t.shape[0]
         I = xp.arange(batchsize)
 
         T = xp.zeros(v.shape, dtype='f')
         T[I, t] = 1.
         m = xp.full(v.shape, 0.1, dtype='f')
         m[I, t] = 0.9
+
         loss = T * F.relu(m - v) ** 2 + 0.5 * (1. - T) * F.relu(v - m) ** 2
         return F.sum(loss) / batchsize
 

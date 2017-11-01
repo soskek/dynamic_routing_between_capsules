@@ -3,6 +3,7 @@ from __future__ import print_function
 import argparse
 import json
 import numpy as np
+
 import chainer
 from chainer.dataset.convert import concat_examples
 
@@ -40,6 +41,8 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test, 100,
                                                  repeat=False, shuffle=False)
 
+    best = 0.
+    best_epoch = 0
     print('TRAINING starts')
     while train_iter.epoch < args.epoch:
         batch = train_iter.next()
@@ -52,17 +55,19 @@ def main():
             print('epoch {:2d}\ttrain mean loss: {}, accuracy: {}'.format(
                 train_iter.epoch, mean_loss, accuracy))
 
-            for batch in test_iter:
-                x, t = concat_examples(batch, args.gpu)
-                with chainer.no_backprop_mode():
-                    with chainer.using_config('train', False):
+            with chainer.no_backprop_mode():
+                with chainer.using_config('train', False):
+                    for batch in test_iter:
+                        x, t = concat_examples(batch, args.gpu)
                         loss = model(x, t)
-
-            test_iter.reset()
             mean_loss, accuracy = model.pop_results()
             print('\t\ttest mean  loss: {}, accuracy: {}'.format(
                 mean_loss, accuracy))
+            if accuracy > best:
+                best, best_epoch = accuracy, train_iter.epoch
             optimizer.alpha *= DECAY_LR
+            test_iter.reset()
+    print('Finish: Best accuray: {} at {} epoch'.format(best, best_epoch))
 
 
 if __name__ == '__main__':

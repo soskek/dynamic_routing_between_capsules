@@ -9,12 +9,11 @@ from chainer.dataset.convert import concat_examples
 
 import nets
 
-DECAY_LR = 0.9
-
 
 def main():
     parser = argparse.ArgumentParser(description='CapsNet: MNIST')
     parser.add_argument('--batchsize', '-b', type=int, default=128)
+    parser.add_argument('--decay', '-d', type=float, default=0.975)
     parser.add_argument('--epoch', '-e', type=int, default=500)
     parser.add_argument('--gpu', '-g', type=int, default=-1)
     parser.add_argument('--seed', '-s', type=int, default=777)
@@ -65,7 +64,9 @@ def main():
                 mean_loss, accuracy))
             if accuracy > best:
                 best, best_epoch = accuracy, train_iter.epoch
-            optimizer.alpha *= DECAY_LR
+            optimizer.alpha *= args.decay
+            optimizer.alpha = max(optimizer.alpha, 1e-5)
+            print('\t\t# optimizer alpha', optimizer.alpha)
             test_iter.reset()
     print('Finish: Best accuray: {} at {} epoch'.format(best, best_epoch))
 

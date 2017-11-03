@@ -10,6 +10,8 @@ python -u train.py -g 0
 
 ## WIP
 
+Test accuracy of a trained model reached 0.9959.
+
 - Add reconstruction loss
 - Check the number of parameters; the paper says CapsNet has 11.36M parameters, but really?
 - Find better hyperparameters

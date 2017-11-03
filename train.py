@@ -13,10 +13,10 @@ import nets
 def main():
     parser = argparse.ArgumentParser(description='CapsNet: MNIST')
     parser.add_argument('--batchsize', '-b', type=int, default=128)
-    parser.add_argument('--decay', '-d', type=float, default=0.975)
+    parser.add_argument('--decay', '-d', type=float, default=0.95)
     parser.add_argument('--epoch', '-e', type=int, default=500)
     parser.add_argument('--gpu', '-g', type=int, default=-1)
-    parser.add_argument('--seed', '-s', type=int, default=777)
+    parser.add_argument('--seed', '-s', type=int, default=789)
     args = parser.parse_args()
     print(json.dumps(args.__dict__, indent=2))
 

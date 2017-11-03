@@ -20,8 +20,18 @@ def _augmentation(x):
     return a.astype(x.dtype)
 
 
-def _count_params(m):
+def _count_params(m, n_grids=6):
     print('# of params', sum(param.size for param in m.params()))
+    # The number of parameters in the paper (11.36M) might be
+    # of the model with unshared matrices over primary capsules in a same grid
+    # when input data are 36x36 images of MultiMNIST (n_grids = 10).
+    # Our model with n_grids=10 has 11.349008M parameters.
+    # (In the Sec. 4, the paper says "each capsule in the [6, 6] grid
+    # is sharing their weights with each other.")
+    print('# of params if unshared',
+          sum(param.size for param in m.params()) +
+          sum(param.size for param in m.Ws.params()) *
+          (n_grids * n_grids - 1))
 
 
 def squash(ss):
@@ -48,6 +58,9 @@ class CapsNet(chainer.Chain):
 
     def __init__(self):
         super(CapsNet, self).__init__()
+        self.n_iterations = 3  # dynamic routing
+        self.n_grids = 6  # grid width of primary capsules layer
+        self.n_raw_grids = self.n_grids
         with self.init_scope():
             self.conv1 = L.Convolution2D(1, 256, ksize=9, stride=1,
                                          initialW=init)
@@ -61,7 +74,7 @@ class CapsNet(chainer.Chain):
             self.fc2 = L.Linear(512, 1024, initialW=init)
             self.fc3 = L.Linear(1024, 784, initialW=init)
 
-        _count_params(self)
+        _count_params(self, n_grids=self.n_grids)
         self.results = {'N': 0, 'loss': [], 'correct': []}
 
     def pop_results(self):
@@ -83,33 +96,38 @@ class CapsNet(chainer.Chain):
 
     def output(self, x):
         batchsize = x.shape[0]
-        n_iterations = 3
+        n_iters = self.n_iterations
+        gg = self.n_grids * self.n_grids
 
         h1 = F.relu(self.conv1(x))
         pr_caps = F.split_axis(self.conv2(h1), 32, axis=1)
+        # shapes if MNIST. -> if MultiMNIST
+        # x (batchsize, 1, 28, 28) -> (:, :, 36, 36)
+        # h1 (batchsize, 256, 20, 20) -> (:, :, 28, 28)
+        # pr_cap (batchsize, 8, 6, 6) -> (:, :, 10, 10)
 
         Preds = []
         for i in range(32):
             pred = self.Ws[i](pr_caps[i])
-            Pred = pred.reshape((batchsize, 16, 10, 6 * 6))
+            Pred = pred.reshape((batchsize, 16, 10, gg))
             Preds.append(Pred)
         Preds = F.stack(Preds, axis=3)
-        assert(Preds.shape == (batchsize, 16, 10, 32, 6 * 6))
+        assert(Preds.shape == (batchsize, 16, 10, 32, gg))
 
-        bs = self.xp.zeros((batchsize, 10, 32, 6 * 6), dtype='f')
-        for i_iter in range(n_iterations):
+        bs = self.xp.zeros((batchsize, 10, 32, gg), dtype='f')
+        for i_iter in range(n_iters):
             cs = F.softmax(bs, axis=1)
             Cs = F.broadcast_to(cs[:, None], Preds.shape)
-            assert(Cs.shape == (batchsize, 16, 10, 32, 6 * 6))
+            assert(Cs.shape == (batchsize, 16, 10, 32, gg))
             ss = F.sum(Cs * Preds, axis=(3, 4))
             vs = squash(ss)
             assert(vs.shape == (batchsize, 16, 10))
 
-            if i_iter != n_iterations - 1:
+            if i_iter != n_iters - 1:
                 Vs = F.broadcast_to(vs[:, :, :, None, None], Preds.shape)
-                assert(Vs.shape == (batchsize, 16, 10, 32, 6 * 6))
+                assert(Vs.shape == (batchsize, 16, 10, 32, gg))
                 bs = bs + F.sum(Vs * Preds, axis=1)
-                assert(bs.shape == (batchsize, 10, 32, 6 * 6))
+                assert(bs.shape == (batchsize, 10, 32, gg))
 
         vs_norm = get_norm(vs)
         return vs_norm, vs

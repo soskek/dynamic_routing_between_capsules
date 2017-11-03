@@ -8,13 +8,9 @@ For the detail, see [Dynamic Routing Between Capsules](https://arxiv.org/pdf/171
 python -u train.py -g 0
 ```
 
-## WIP
-
 Test accuracy of a trained model reached 0.9959.
 
+TODO
+
 - Add reconstruction loss
-- Check the number of parameters; the paper says CapsNet has 11.36M parameters, but really?
 - Find better hyperparameters
-    - initialization
-    - decay rate of Adam's alpha
-- Experiment on MultiMNIST, Cifar10, smallNORB, SVHN

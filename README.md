@@ -9,7 +9,7 @@ python -u train.py -g 0
 ```
 
 Test accuracy of a trained model reached 99.60%.
-The paper does not provide detailed information about initialization and optimization, so the performance might not reach that in the paper. For alleviating those issues, I replaced relu with leaky relu with very small slope (0.05). The modified model achieved 99.65% (i.e. error rate is 0.35%), as the paper reported.
+The paper does not provide detailed information about initialization and optimization, so the performance might not reach that in the paper. For alleviating those issues, I replaced relu with leaky relu with a very small slope (0.05). The modified model achieved 99.65% (i.e. error rate is 0.35%), as the paper reported.
 
 TODO
 

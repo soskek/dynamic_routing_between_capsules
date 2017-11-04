@@ -12,7 +12,7 @@ import nets
 
 def main():
     parser = argparse.ArgumentParser(description='CapsNet: MNIST')
-    parser.add_argument('--batchsize', '-b', type=int, default=128)
+    parser.add_argument('--batchsize', '-b', type=int, default=256)
     parser.add_argument('--decay', '-d', type=float, default=0.95)
     parser.add_argument('--epoch', '-e', type=int, default=500)
     parser.add_argument('--gpu', '-g', type=int, default=-1)

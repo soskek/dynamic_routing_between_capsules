@@ -99,7 +99,8 @@ class CapsNet(chainer.Chain):
         n_iters = self.n_iterations
         gg = self.n_grids * self.n_grids
 
-        h1 = F.relu(self.conv1(x))
+        # h1 = F.relu(self.conv1(x))
+        h1 = F.leaky_relu(self.conv1(x), 0.05)
         pr_caps = F.split_axis(self.conv2(h1), 32, axis=1)
         # shapes if MNIST. -> if MultiMNIST
         # x (batchsize, 1, 28, 28) -> (:, :, 36, 36)

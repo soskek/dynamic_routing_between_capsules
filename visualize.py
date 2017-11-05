@@ -14,17 +14,14 @@ from chainer import serializers
 import nets
 
 
-def save_images(x, filename, x_raw=None):
-    x = np.array(x.tolist(), np.float32)
-    width = x.shape[0]
+def save_images(xs, filename):
+    width = xs[0].shape[0]
+    height = len(xs)
 
-    if x_raw is not None:
-        x_raw = np.array(x_raw.tolist(), np.float32)
-        fig, ax = plt.subplots(2, width, figsize=(1 * width, 2))  # , dpi=20)
-        xs = np.concatenate([x_raw, x], axis=0)
-    else:
-        fig, ax = plt.subplots(1, width, figsize=(1 * width, 1))  # , dpi=20)
-        xs = x
+    xs = [np.array(x.tolist(), np.float32) for x in xs]
+    fig, ax = plt.subplots(height, width, figsize=(1 * width, height))
+    xs = np.concatenate(xs, axis=0)
+
     for ai, xi in zip(ax.ravel(), xs):
         ai.set_xticklabels([])
         ai.set_yticklabels([])
@@ -32,7 +29,7 @@ def save_images(x, filename, x_raw=None):
         ai.imshow(xi.reshape(28, 28), cmap='Blues_r', vmin=0., vmax=1.)
 
     plt.subplots_adjust(
-        left=None, bottom=None, right=None, top=None, wspace=0., hspace=0.)
+        left=None, bottom=None, right=None, top=None, wspace=0.1, hspace=0.)
     fig.savefig(filename, bbox_inches='tight', pad=0.)
     plt.clf()
     plt.close('all')
@@ -41,9 +38,21 @@ def save_images(x, filename, x_raw=None):
 def visualize_reconstruction(model, x, t, filename='vis.png'):
     vs_norm, vs = model.output(x)
     x_recon = model.reconstruct(vs, t)
-    save_images(x_recon.data[:, 0, :, :],
-                filename,
-                x_raw=x[:, 0, :, :])
+    save_images([x, x_recon.data],
+                filename)
+
+
+def visualize_reconstruction_all(model, x, t, filename='visall.png'):
+    t_list = []
+    x_recon_list = []
+    vs_norm, vs = model.output(x)
+    for i in range(10):
+        pseudo_t = model.xp.full(t.shape, i).astype('i')
+        x_recon = model.reconstruct(vs, pseudo_t).data
+        t_list.append(pseudo_t)
+        x_recon_list.append(x_recon)
+    save_images([x] + x_recon_list,
+                filename)
 
 
 if __name__ == '__main__':
@@ -61,7 +70,8 @@ if __name__ == '__main__':
         model.to_gpu()
     train, test = chainer.datasets.get_mnist(ndim=3)
 
-    batch = test[:10]
+    batch = test[50:60]
     x, t = concat_examples(batch, args.gpu)
-    print('encode, reconstruct, visualize')
+
     visualize_reconstruction(model, x, t)
+    visualize_reconstruction_all(model, x, t)

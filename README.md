@@ -33,7 +33,7 @@ If an irrelevant target is selected, the reconstructed image gets spoiled (see "
 
 ### Interpolation of values in digit capsules
 
-Here, I show the reconstructed images after tweaking the value in a dimension in the capsule, as well as section 5.1 and figure 4 the paper. Note that a same dimension in different digits is a different factor, because each matrix for reconstructing each digit is unshared.
+Here, I show reconstructed images after linearly tweaking the value in a dimension in the capsule (as well as section 5.1 and figure 4 in the paper). Green images in the center are reconstructed images without perturbation. Note that a dimension has a different factor if the digit capsule differs, because each matrix for reconstructing each digit is unshared.
 
 You can find and enjoy some factors of variation.
 

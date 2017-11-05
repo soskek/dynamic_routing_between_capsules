@@ -14,7 +14,7 @@ from chainer import serializers
 import nets
 
 
-def save_images(xs, filename):
+def save_images(xs, filename, marked_row=0):
     width = xs[0].shape[0]
     height = len(xs)
 
@@ -27,11 +27,11 @@ def save_images(xs, filename):
         ai.set_xticklabels([])
         ai.set_yticklabels([])
         ai.set_axis_off()
-        color = 'Greens_r' if i < width else 'Blues_r'  # first line
+        color = 'Greens_r' if i // width == marked_row else 'Blues_r'
         ai.imshow(xi.reshape(28, 28), cmap=color, vmin=0., vmax=1.)
 
     plt.subplots_adjust(
-        left=None, bottom=None, right=None, top=None, wspace=0., hspace=0.)
+        left=None, bottom=None, right=None, top=None, wspace=0.05, hspace=0.05)
     # saving and clearing subplots with many figs are also very slow
     fig.savefig(filename, bbox_inches='tight', pad=0.)
     plt.clf()
@@ -39,6 +39,7 @@ def save_images(xs, filename):
 
 
 def visualize_reconstruction(model, x, t, filename='vis.png'):
+    print('visualize', filename)
     vs_norm, vs = model.output(x)
     x_recon = model.reconstruct(vs, t)
     save_images([x, x_recon.data],
@@ -46,6 +47,7 @@ def visualize_reconstruction(model, x, t, filename='vis.png'):
 
 
 def visualize_reconstruction_alldigits(model, x, t, filename='vis_all.png'):
+    print('visualize', filename)
     x_recon_list = []
     vs_norm, vs = model.output(x)
     for i in range(10):
@@ -56,20 +58,23 @@ def visualize_reconstruction_alldigits(model, x, t, filename='vis_all.png'):
                 filename)
 
 
-def visualize_reconstruction_tweaked(model, x, t, filename='vis_tweaked.png',
-                                     dim_idx=0):
-    assert(0 <= dim_idx <= 15)
+def visualize_reconstruction_tweaked(model, x, t, filename='vis_tweaked.png'):
+    print('visualize', filename)
     x_recon_list = []
     vs_norm, vs = model.output(x)
     vs = vs.data
+    vs = model.xp.concatenate([vs] * 16, axis=0)
+    t = model.xp.concatenate([t] * 16, axis=0)
+    I = model.xp.arange(16)
     for i in range(9):
         tweaked_vs = model.xp.array(vs)
-        tweaked_vs[:, dim_idx, :] = (i - 4.) * 0.05  # [-0.20, 0.20]
+        tweaked_vs[I, I, :] += (i - 4.) * 0.075  # raw + [-0.30, 0.30]
         x_recon = model.reconstruct(tweaked_vs, t).data
         x_recon_list.append(x_recon)
     x_recon = model.reconstruct(vs, t).data
-    save_images([x_recon] + x_recon_list,
-                filename)
+    save_images(x_recon_list,
+                filename,
+                marked_row=4)
 
 
 def get_samples(dataset):
@@ -106,8 +111,7 @@ if __name__ == '__main__':
         with chainer.using_config('train', False):
             visualize_reconstruction(model, x, t)
             visualize_reconstruction_alldigits(model, x, t)
-            for i in range(16):
+            for i in range(10):
                 visualize_reconstruction_tweaked(
-                    model, x, t,
-                    filename='vis_tweaked{}.png'.format(i),
-                    dim_idx=i)
+                    model, x[i * 2: i * 2 + 1], t[i * 2: i * 2 + 1],
+                    filename='vis_tweaked{}.png'.format(i))

@@ -6,6 +6,7 @@ import numpy as np
 
 import chainer
 from chainer.dataset.convert import concat_examples
+from chainer import serializers
 
 import nets
 
@@ -18,6 +19,7 @@ def main():
     parser.add_argument('--gpu', '-g', type=int, default=-1)
     parser.add_argument('--seed', '-s', type=int, default=789)
     parser.add_argument('--reconstruct', '--recon', action='store_true')
+    parser.add_argument('--save')
     args = parser.parse_args()
     print(json.dumps(args.__dict__, indent=2))
 
@@ -71,6 +73,7 @@ def main():
                     report(train_iter.epoch, result)
             if result['accuracy'] > best:
                 best, best_epoch = result['accuracy'], train_iter.epoch
+                serializers.save_npz(args.save, model)
 
             optimizer.alpha *= args.decay
             optimizer.alpha = max(optimizer.alpha, 1e-5)

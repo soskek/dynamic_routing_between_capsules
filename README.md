@@ -19,3 +19,40 @@ python visualize.py -g 0 --load saved_model`
 ```
 
 produces some images for analyzing digit capsules.
+
+### Different masks
+
+![vis_all.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_all.png)
+
+The top green images are real images which are given to the model. Blue images in i-th represents reconstructed ones of digit "i".
+
+If an correct digit is selected as a target, the model reconstructs an image well (see the diagonal cells).
+
+If an irrelevant target is selected, the reconstructed image gets spoiled (see "0" and the others in the column leftmost), maybe because of lack of information in its digit capsule. However, reconstruction toward a relevant target is not always spoiled, even if a target is not correct (see "8" and "9" the column rightmost).
+
+
+### Interpolation of values in digit capsules
+
+Here, I show the reconstructed images after tweaking the value in a dimension in the capsule, as well as section 5.1 and figure 4 the paper. Note that a same dimension in different digits is a different factor, because each matrix for reconstructing each digit is unshared.
+
+You can find and enjoy some factors of variation.
+
+![vis_tweaked0.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked0.png)
+
+![vis_tweaked1.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked1.png)
+
+![vis_tweaked2.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked2.png)
+
+![vis_tweaked3.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked3.png)
+
+![vis_tweaked4.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked4.png)
+
+![vis_tweaked5.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked5.png)
+
+![vis_tweaked6.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked6.png)
+
+![vis_tweaked7.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked7.png)
+
+![vis_tweaked8.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked8.png)
+
+![vis_tweaked9.png](https://raw.githubusercontent.com/soskek/dynamic_routing_between_capsules/upload-imgs/data/vis_imgs/vis_tweaked9.png)

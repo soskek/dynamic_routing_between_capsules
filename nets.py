@@ -56,11 +56,12 @@ init = chainer.initializers.Uniform(scale=0.05)
 
 class CapsNet(chainer.Chain):
 
-    def __init__(self):
+    def __init__(self, use_reconstruction=False):
         super(CapsNet, self).__init__()
         self.n_iterations = 3  # dynamic routing
         self.n_grids = 6  # grid width of primary capsules layer
         self.n_raw_grids = self.n_grids
+        self.use_reconstruction = use_reconstruction
         with self.init_scope():
             self.conv1 = L.Convolution2D(1, 256, ksize=9, stride=1,
                                          initialW=init)
@@ -75,22 +76,27 @@ class CapsNet(chainer.Chain):
             self.fc3 = L.Linear(1024, 784, initialW=init)
 
         _count_params(self, n_grids=self.n_grids)
-        self.results = {'N': 0, 'loss': [], 'correct': []}
+        self.results = {'N': 0, 'loss': [], 'correct': [],
+                        'cls_loss': [], 'rcn_loss': []}
 
     def pop_results(self):
-        mean_loss = sum(self.results['loss']) / self.results['N']
-        accuracy = sum(self.results['correct']) / self.results['N']
-        self.results = {'N': 0, 'loss': [], 'correct': []}
-        return mean_loss, accuracy
+        merge = dict()
+        merge['mean_loss'] = sum(self.results['loss']) / self.results['N']
+        merge['cls_loss'] = sum(self.results['cls_loss']) / self.results['N']
+        merge['rcn_loss'] = sum(self.results['rcn_loss']) / self.results['N']
+        merge['accuracy'] = sum(self.results['correct']) / self.results['N']
+        self.results = {'N': 0, 'loss': [], 'correct': [],
+                        'cls_loss': [], 'rcn_loss': []}
+        return merge
 
     def __call__(self, x, t):
         if chainer.config.train:
             x = _augmentation(x)
-        out, _ = self.output(x)
-        self.loss = self.calculate_loss(out, t)
+        vs_norm, vs = self.output(x)
+        self.loss = self.calculate_loss(vs_norm, t, vs, x)
 
         self.results['loss'].append(self.loss.data * t.shape[0])
-        self.results['correct'].append(self.calculate_correct(out, t))
+        self.results['correct'].append(self.calculate_correct(vs_norm, t))
         self.results['N'] += t.shape[0]
         return self.loss
 
@@ -133,17 +139,42 @@ class CapsNet(chainer.Chain):
         vs_norm = get_norm(vs)
         return vs_norm, vs
 
-    def calculate_loss(self, v, t):
+    def calculate_loss(self, vs_norm, t, vs, x):
+        class_loss = self.calculate_classification_loss(vs_norm, t)
+        self.results['cls_loss'].append(class_loss.data * t.shape[0])
+        if self.use_reconstruction:
+            recon_loss = self.calculate_reconstruction_loss(vs, t, x)
+            self.results['rcn_loss'].append(recon_loss.data * t.shape[0])
+            return class_loss + 0.0005 * recon_loss
+        else:
+            return class_loss
+
+    def calculate_classification_loss(self, vs_norm, t):
         xp = self.xp
         batchsize = t.shape[0]
         I = xp.arange(batchsize)
-
-        T = xp.zeros(v.shape, dtype='f')
+        T = xp.zeros(vs_norm.shape, dtype='f')
         T[I, t] = 1.
-        m = xp.full(v.shape, 0.1, dtype='f')
+        m = xp.full(vs_norm.shape, 0.1, dtype='f')
         m[I, t] = 0.9
 
-        loss = T * F.relu(m - v) ** 2 + 0.5 * (1. - T) * F.relu(v - m) ** 2
+        loss = T * F.relu(m - vs_norm) ** 2 + \
+            0.5 * (1. - T) * F.relu(vs_norm - m) ** 2
+        return F.sum(loss) / batchsize
+
+    def calculate_reconstruction_loss(self, vs, t, x):
+        xp = self.xp
+        batchsize = t.shape[0]
+        I = xp.arange(batchsize)
+        mask = xp.zeros(vs.shape, dtype='f')
+        mask[I, :, t] = 1.
+        masked_vs = mask * vs
+
+        x_recon = F.sigmoid(
+            self.fc3(F.relu(
+                self.fc2(F.relu(
+                    self.fc1(masked_vs)))))).reshape(x.shape)
+        loss = (x_recon - x) ** 2
         return F.sum(loss) / batchsize
 
     def calculate_correct(self, v, t):

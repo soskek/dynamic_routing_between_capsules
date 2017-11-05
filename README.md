@@ -8,6 +8,8 @@ For the detail, see [Dynamic Routing Between Capsules](https://arxiv.org/pdf/171
 python -u train.py -g 0
 ```
 
+Add `--reconstruct` if you want to train a model with reconstruction loss.
+
 Test accuracy of a trained model reached 99.60%.
 The paper does not provide detailed information about initialization and optimization, so the performance might not reach that in the paper. For alleviating those issues, I replaced relu with leaky relu with a very small slope (0.05). The modified model achieved 99.65% (i.e. error rate is 0.35%), as the paper reported.
 

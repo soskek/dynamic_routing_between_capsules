@@ -5,7 +5,7 @@ Chainer implementation of CapsNet for MNIST.
 For the detail, see [Dynamic Routing Between Capsules](https://arxiv.org/pdf/1710.09829.pdf), Sara Sabour, Nicholas Frosst, Geoffrey E Hinton, NIPS 2017.
 
 ```
-python -u train.py -g 0 --save saved_model --reconstruct`
+python -u train.py -g 0 --save saved_model --reconstruct
 ```
 
 Test accuracy of a trained model (without reconstruction) reached 99.60%.
@@ -15,7 +15,7 @@ The paper does not provide detailed information about initialization and optimiz
 ## Visualization through Reconstruction
 
 ```
-python visualize.py -g 0 --load saved_model`
+python visualize.py -g 0 --load saved_model
 ```
 
 produces some images for analyzing digit capsules.

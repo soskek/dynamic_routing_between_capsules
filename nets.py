@@ -76,7 +76,7 @@ class CapsNet(chainer.Chain):
             self.fc3 = L.Linear(1024, 784, initialW=init)
 
         _count_params(self, n_grids=self.n_grids)
-        self.results = {'N': 0, 'loss': [], 'correct': [],
+        self.results = {'N': 0., 'loss': [], 'correct': [],
                         'cls_loss': [], 'rcn_loss': []}
 
     def pop_results(self):
@@ -85,7 +85,7 @@ class CapsNet(chainer.Chain):
         merge['cls_loss'] = sum(self.results['cls_loss']) / self.results['N']
         merge['rcn_loss'] = sum(self.results['rcn_loss']) / self.results['N']
         merge['accuracy'] = sum(self.results['correct']) / self.results['N']
-        self.results = {'N': 0, 'loss': [], 'correct': [],
+        self.results = {'N': 0., 'loss': [], 'correct': [],
                         'cls_loss': [], 'rcn_loss': []}
         return merge
 
